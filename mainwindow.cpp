@@ -1,36 +1,6 @@
 #include "mainwindow.h"
 #include <iostream>
 
-void PrintDeviceInfo(MV_CC_DEVICE_INFO *pstMVDevInfo)
-{
-    if (NULL == pstMVDevInfo)
-    {
-        std::cout << "The Pointer of pstMVDevInfo is NULL!" << std::endl;
-        return;
-    }
-    if (pstMVDevInfo->nTLayerType == MV_GIGE_DEVICE)
-    {
-        int nIp1 = ((pstMVDevInfo->SpecialInfo.stGigEInfo.nCurrentIp & 0xff000000) >> 24);
-        int nIp2 = ((pstMVDevInfo->SpecialInfo.stGigEInfo.nCurrentIp & 0x00ff0000) >> 16);
-        int nIp3 = ((pstMVDevInfo->SpecialInfo.stGigEInfo.nCurrentIp & 0x0000ff00) >> 8);
-        int nIp4 = (pstMVDevInfo->SpecialInfo.stGigEInfo.nCurrentIp & 0x000000ff);
-
-        // print current ip and user defined name
-        std::cout << "Device Model Name: " << pstMVDevInfo->SpecialInfo.stGigEInfo.chModelName << std::endl;
-        std::cout << "CurrentIp: " << nIp1 << "." << nIp2 << "." << nIp3 << "." << nIp4 << std::endl;
-        std::cout << "UserDefinedName: " << pstMVDevInfo->SpecialInfo.stGigEInfo.chUserDefinedName << std::endl;
-    }
-    else if (pstMVDevInfo->nTLayerType == MV_USB_DEVICE)
-    {
-        std::cout << "Device Model Name: " << pstMVDevInfo->SpecialInfo.stUsb3VInfo.chModelName << std::endl;
-        std::cout << "UserDefinedName: " << pstMVDevInfo->SpecialInfo.stUsb3VInfo.chUserDefinedName << std::endl;
-    }
-    else
-    {
-        std::cout << "Not support" << std::endl;
-    }
-}
-
 void __stdcall GrabImageCallBack(unsigned char *pData, MV_FRAME_OUT_INFO_EX *pFrameInfo, void *pUser)
 {
     if (pFrameInfo)
