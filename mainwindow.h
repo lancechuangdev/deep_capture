@@ -16,25 +16,25 @@ public:
 
 protected:
     // Member widgets:
-    Gtk::TreeView *m_cams_tv;
-    Gtk::Button *m_discover_btn;
-    Gtk::Button *m_connect_btn;
-    Gtk::Button *m_start_btn;
-    Gtk::Button *m_stop_btn;
-    Gtk::Button *m_disconnect_btn;
+    Gtk::TreeView *m_camTreeView;
+    Gtk::Button *m_discoverBtn;
+    Gtk::Button *m_connectBtn;
+    Gtk::Button *m_startBtn;
+    Gtk::Button *m_stopBtn;
+    Gtk::Button *m_disconnectBtn;
 
     // Signal handlers:
-    void on_discover_clicked();
-    void on_connect_clicked();
-    void on_start_clicked();
-    void on_stop_clicked();
-    void on_disconnect_clicked();
+    void onDiscoverClicked();
+    void onConnectClicked();
+    void onStartClicked();
+    void onStopClicked();
+    void onDisconnectClicked();
 
 private:
     Glib::RefPtr<Gtk::Builder> m_builder;
-    Glib::RefPtr<Gtk::ListStore> m_cam_list_store;
-    MV_CC_DEVICE_INFO_LIST m_stDeviceList;
-    void* m_deviceHandle;
+    Glib::RefPtr<Gtk::ListStore> m_camListStore;
+    MV_CC_DEVICE_INFO_LIST m_camList;
+    void* m_selectedCam;
     CamColumns m_camcols;
 };
 
