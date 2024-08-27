@@ -200,7 +200,7 @@
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkSpinButton">
+                  <object class="GtkSpinButton" id="capture_rate_sb">
                     <property name="visible">True</property>
                     <property name="can-focus">True</property>
                     <property name="adjustment">capture_rate_adjustment</property>

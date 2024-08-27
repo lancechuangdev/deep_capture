@@ -77,6 +77,8 @@ MainWindow::MainWindow(BaseObjectType *obj, Glib::RefPtr<Gtk::Builder> const &re
     {
         m_captureDurationSb->signal_value_changed().connect(sigc::mem_fun(*this, &MainWindow::onCaptureDurationChanged));
     }
+
+    m_builder->get_widget("capture_rate_sb", m_captureRateSb);
 }
 
 MainWindow::~MainWindow()

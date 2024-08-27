@@ -30,7 +30,8 @@ protected:
     Gtk::Label *m_gainLbl;
     Gtk::FileChooserButton *m_pickerFcb;
     Gtk::SpinButton *m_captureDurationSb; 
-
+    Gtk::SpinButton *m_captureRateSb;
+    
     // Signal handlers:
     void onDiscoverClicked();
     void onConnectClicked();
