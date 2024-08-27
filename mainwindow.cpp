@@ -65,11 +65,17 @@ MainWindow::MainWindow(BaseObjectType *obj, Glib::RefPtr<Gtk::Builder> const &re
     m_builder->get_widget("gain_lbl", m_gainLbl);
 
     // Image Acquiring
-    m_builder->get_widget("picker_fcb", picker_fcb);
-    if (picker_fcb)
+    m_builder->get_widget("picker_fcb", m_pickerFcb);
+    if (m_pickerFcb)
     {
         // Connect to the file-set signal
-        picker_fcb->signal_file_set().connect(sigc::mem_fun(*this, &MainWindow::onFolderSelected));
+        m_pickerFcb->signal_file_set().connect(sigc::mem_fun(*this, &MainWindow::onFolderSelected));
+    }
+
+    m_builder->get_widget("capture_duration_sb", m_captureDurationSb);
+    if (m_captureDurationSb) 
+    {
+        m_captureDurationSb->signal_value_changed().connect(sigc::mem_fun(*this, &MainWindow::onCaptureDurationChanged));
     }
 }
 
@@ -385,5 +391,9 @@ void MainWindow::onDisconnectClicked()
 }
 
 void MainWindow::onFolderSelected() {
-    m_folderPath = picker_fcb->get_filename();
+    m_folderPath = m_pickerFcb->get_filename();
+}
+
+void MainWindow::onCaptureDurationChanged() {
+    m_captureDuration = m_captureDurationSb->get_value();
 }

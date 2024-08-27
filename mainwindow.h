@@ -4,8 +4,8 @@
 #include <gtkmm/button.h>
 #include <gtkmm/treeview.h>
 #include <gtkmm/window.h>
-#include <gtkmm/builder.h>
 #include <gtkmm/label.h>
+#include <gtkmm/builder.h>
 #include "MvCameraControl.h"
 #include "camcols.h"
 
@@ -28,8 +28,9 @@ protected:
     Gtk::Label *m_widthLbl;
     Gtk::Label *m_heightLbl;
     Gtk::Label *m_gainLbl;
-    Gtk::FileChooserButton *picker_fcb;
-    
+    Gtk::FileChooserButton *m_pickerFcb;
+    Gtk::SpinButton *m_captureDurationSb; 
+
     // Signal handlers:
     void onDiscoverClicked();
     void onConnectClicked();
@@ -46,8 +47,10 @@ private:
     void* m_selectedCam;
     CamColumns m_camcols;
     std::string m_folderPath;
+    int m_captureDuration;
     void populateDeviceSettings();
     void clearDeviceSettings();
+    void onCaptureDurationChanged();
 };
 
 #endif // DEEP_SCAN_MAINWINDOW_H
