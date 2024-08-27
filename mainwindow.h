@@ -29,6 +29,7 @@ protected:
     void onStartClicked();
     void onStopClicked();
     void onDisconnectClicked();
+    void onTreeviewSelectionChanged();
 
 private:
     Glib::RefPtr<Gtk::Builder> m_builder;
