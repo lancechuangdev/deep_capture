@@ -63,6 +63,14 @@ MainWindow::MainWindow(BaseObjectType *obj, Glib::RefPtr<Gtk::Builder> const &re
     m_builder->get_widget("width_lbl", m_widthLbl);
     m_builder->get_widget("height_lbl", m_heightLbl);
     m_builder->get_widget("gain_lbl", m_gainLbl);
+
+    // Image Acquiring
+    m_builder->get_widget("picker_fcb", picker_fcb);
+    if (picker_fcb)
+    {
+        // Connect to the file-set signal
+        picker_fcb->signal_file_set().connect(sigc::mem_fun(*this, &MainWindow::onFolderSelected));
+    }
 }
 
 MainWindow::~MainWindow()
@@ -374,4 +382,8 @@ void MainWindow::onDisconnectClicked()
     m_selectedCam = nullptr;
 
     clearDeviceSettings();
+}
+
+void MainWindow::onFolderSelected() {
+    m_folderPath = picker_fcb->get_filename();
 }

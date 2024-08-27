@@ -28,7 +28,8 @@ protected:
     Gtk::Label *m_widthLbl;
     Gtk::Label *m_heightLbl;
     Gtk::Label *m_gainLbl;
-
+    Gtk::FileChooserButton *picker_fcb;
+    
     // Signal handlers:
     void onDiscoverClicked();
     void onConnectClicked();
@@ -36,6 +37,7 @@ protected:
     void onStopClicked();
     void onDisconnectClicked();
     void onTreeviewSelectionChanged();
+    void onFolderSelected();
 
 private:
     Glib::RefPtr<Gtk::Builder> m_builder;
@@ -43,6 +45,7 @@ private:
     MV_CC_DEVICE_INFO_LIST m_camList;
     void* m_selectedCam;
     CamColumns m_camcols;
+    std::string m_folderPath;
     void populateDeviceSettings();
     void clearDeviceSettings();
 };
