@@ -56,6 +56,13 @@ MainWindow::MainWindow(BaseObjectType *obj, Glib::RefPtr<Gtk::Builder> const &re
     m_camTreeView->append_column("Model", m_camcols.col_model);
     m_camTreeView->append_column("Friendly Name", m_camcols.col_friendly_name);
     m_camTreeView->append_column("IP Address", m_camcols.col_ip);
+
+    // Device settings
+    m_builder->get_widget("exposure_lbl", m_exposureTimeLbl);
+    m_builder->get_widget("frame_rate_lbl", m_frameRateLbl);
+    m_builder->get_widget("width_lbl", m_widthLbl);
+    m_builder->get_widget("height_lbl", m_heightLbl);
+    m_builder->get_widget("gain_lbl", m_gainLbl);
 }
 
 MainWindow::~MainWindow()
@@ -224,6 +231,110 @@ void MainWindow::onConnectClicked()
         std::cout << "MV_CC_RegisterImageCallBackEx fail. Error code: " << nRet << std::endl;
         return;
     }
+
+    populateDeviceSettings();
+}
+
+void MainWindow::populateDeviceSettings()
+{
+    // Exposure time
+    MVCC_FLOATVALUE exposureTime = {0};
+    int nRet = MV_CC_GetFloatValue(m_selectedCam, "ExposureTime", &exposureTime);
+    if (MV_OK == nRet && m_exposureTimeLbl)
+    {
+        // Convert float to string
+        std::ostringstream oss;
+        oss << exposureTime.fCurValue;
+
+        // Set the label text
+        m_exposureTimeLbl->set_text(Glib::ustring(oss.str()));
+    }
+    else
+    {
+        std::cout << "Failed to get exposure time. Error code: " << nRet << std::endl;
+    }
+
+    // Resulting Frame Rate
+    MVCC_FLOATVALUE frameRate = {0};
+    nRet = MV_CC_GetFloatValue(m_selectedCam, "ResultingFrameRate", &frameRate);
+    if (MV_OK == nRet && m_frameRateLbl)
+    {
+        // Convert float to string
+        std::ostringstream oss;
+        oss << frameRate.fCurValue;
+
+        // Set the label text
+        m_frameRateLbl->set_text(oss.str());
+    }
+    else
+    {
+        std::cout << "Failed to get frame rate. Error code: " << nRet << std::endl;
+    }
+
+    // Width
+    MVCC_INTVALUE width = {0};
+    nRet = MV_CC_GetIntValue(m_selectedCam, "Width", &width);
+    if (MV_OK == nRet && m_widthLbl)
+    {
+        m_widthLbl->set_text(std::to_string(width.nCurValue));
+    }
+    else
+    {
+        std::cout << "Failed to get width. Error code: " << nRet << std::endl;
+    }
+
+    // Height
+    MVCC_INTVALUE height = {0};
+    nRet = MV_CC_GetIntValue(m_selectedCam, "Height", &height);
+    if (MV_OK == nRet && m_heightLbl)
+    {
+        m_heightLbl->set_text(std::to_string(height.nCurValue));
+    }
+    else
+    {
+        std::cout << "Failed to get height. Error code: " << nRet << std::endl;
+    }
+
+    // Gain
+    MVCC_FLOATVALUE gain = {0};
+    nRet = MV_CC_GetFloatValue(m_selectedCam, "Gain", &gain);
+    if (MV_OK == nRet && m_gainLbl)
+    {
+        // Convert float to string
+        std::ostringstream oss;
+        oss << gain.fCurValue;
+
+        // Set the label text
+        m_gainLbl->set_text(oss.str());
+    }
+    else
+    {
+        std::cout << "Failed to get gain. Error code: " << nRet << std::endl;
+    }
+}
+
+void MainWindow::clearDeviceSettings()
+{
+    if (m_exposureTimeLbl)
+    {
+        m_exposureTimeLbl->set_text(std::string());
+    }
+    if (m_frameRateLbl)
+    {
+        m_frameRateLbl->set_text(std::string());
+    }
+    if (m_widthLbl)
+    {
+        m_widthLbl->set_text(std::string());
+    }
+    if (m_heightLbl)
+    {
+        m_heightLbl->set_text(std::string());
+    }
+    if (m_gainLbl)
+    {
+        m_gainLbl->set_text(std::string());
+    }
 }
 
 void MainWindow::onStartClicked()
@@ -261,4 +372,6 @@ void MainWindow::onDisconnectClicked()
     }
 
     m_selectedCam = nullptr;
+
+    clearDeviceSettings();
 }

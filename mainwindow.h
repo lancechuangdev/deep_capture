@@ -5,6 +5,7 @@
 #include <gtkmm/treeview.h>
 #include <gtkmm/window.h>
 #include <gtkmm/builder.h>
+#include <gtkmm/label.h>
 #include "MvCameraControl.h"
 #include "camcols.h"
 
@@ -22,6 +23,11 @@ protected:
     Gtk::Button *m_startBtn;
     Gtk::Button *m_stopBtn;
     Gtk::Button *m_disconnectBtn;
+    Gtk::Label *m_exposureTimeLbl;
+    Gtk::Label *m_frameRateLbl;
+    Gtk::Label *m_widthLbl;
+    Gtk::Label *m_heightLbl;
+    Gtk::Label *m_gainLbl;
 
     // Signal handlers:
     void onDiscoverClicked();
@@ -37,6 +43,8 @@ private:
     MV_CC_DEVICE_INFO_LIST m_camList;
     void* m_selectedCam;
     CamColumns m_camcols;
+    void populateDeviceSettings();
+    void clearDeviceSettings();
 };
 
 #endif // DEEP_SCAN_MAINWINDOW_H
