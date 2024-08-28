@@ -1,11 +1,47 @@
 #include "mainwindow.h"
-#include <iostream>
+
+void saveImageAsync(unsigned char* pData, MV_FRAME_OUT_INFO_EX* pFrameInfo, void* deviceHandle, std::string folderPath) {
+    MV_SAVE_IMG_TO_FILE_PARAM stSaveFileParam;
+    memset(&stSaveFileParam, 0, sizeof(MV_SAVE_IMG_TO_FILE_PARAM));
+
+    stSaveFileParam.enImageType = MV_Image_Bmp;
+    stSaveFileParam.enPixelType = pFrameInfo->enPixelType;
+    stSaveFileParam.nWidth      = pFrameInfo->nWidth;
+    stSaveFileParam.nHeight     = pFrameInfo->nHeight;
+    stSaveFileParam.nDataLen    = pFrameInfo->nFrameLen;
+    stSaveFileParam.pData       = pData;
+
+    sprintf(stSaveFileParam.pImagePath, "%sImage_w%d_h%d_fn%d.bmp", folderPath.c_str(), stSaveFileParam.nWidth, stSaveFileParam.nHeight, pFrameInfo->nFrameNum);
+
+    int nRet = MV_CC_SaveImageToFile(deviceHandle, &stSaveFileParam);
+    if (MV_OK != nRet) {
+        std::cout << "Failed to save image to file. Error code: " << nRet << std::endl;
+    }
+}
 
 void __stdcall GrabImageCallBack(unsigned char *pData, MV_FRAME_OUT_INFO_EX *pFrameInfo, void *pUser)
 {
     if (pFrameInfo)
     {
         std::cout << "GetOneFrame, Width: " << pFrameInfo->nWidth << ", Height: " << pFrameInfo->nHeight << ", Frame num: " << pFrameInfo->nFrameNum << std::endl;
+    }
+
+    // Cast pUser to MainWindow*
+    MainWindow* pThis = static_cast<MainWindow*>(pUser);
+
+    void* deviceHanlde = pThis->m_selectedCam;
+
+    // Ensure that the folder path ends with a slash
+    std::string folderPath = pThis->m_folderPath;
+    if (!folderPath.empty() && folderPath.back() != '/')
+    {
+        folderPath += '/';
+    }
+
+    if (pFrameInfo->nFrameNum < 10)
+    {
+        // Save image in a separate thread
+        std::async(std::launch::async, saveImageAsync, pData, pFrameInfo, deviceHanlde, folderPath);
     }
 }
 
@@ -241,7 +277,7 @@ void MainWindow::onConnectClicked()
     }
 
     // Register image callback
-    nRet = MV_CC_RegisterImageCallBackEx(m_selectedCam, GrabImageCallBack, m_selectedCam);
+    nRet = MV_CC_RegisterImageCallBackEx(m_selectedCam, GrabImageCallBack, this);
     if (MV_OK != nRet)
     {
         std::cout << "MV_CC_RegisterImageCallBackEx fail. Error code: " << nRet << std::endl;
@@ -355,6 +391,37 @@ void MainWindow::clearDeviceSettings()
 
 void MainWindow::onStartClicked()
 {
+    if (m_pickerFcb)
+    {
+        m_folderPath = m_pickerFcb->get_filename();
+
+        // Get current time and format it as YYYYMMDD_HHMMSS
+        char timestamp[20];
+        std::time_t now = std::time(nullptr);
+        std::strftime(timestamp, sizeof(timestamp), "%Y%m%d_%H%M%S", std::localtime(&now));
+
+        // Append timestamp to the folder path
+        std::string timestampStr(timestamp);
+        m_folderPath += "/" + timestampStr;
+
+        // Create the subfolder if it doesn't exist
+        try {
+            if (!std::filesystem::exists(m_folderPath)) {
+                std::filesystem::create_directory(m_folderPath);
+            }
+        } catch (const std::filesystem::filesystem_error& e) {
+            std::cerr << "Error creating directory: " << e.what() << std::endl;
+        }
+    }
+    if (m_captureDurationSb)
+    {
+        m_captureDuration = m_captureDurationSb->get_value();
+    }
+    if (m_captureRateSb)
+    {
+        m_captureRate = m_captureRateSb->get_value();
+    }
+    
     // Start grab images
     int nRet = MV_CC_StartGrabbing(m_selectedCam);
     if (MV_OK != nRet)

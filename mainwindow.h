@@ -8,14 +8,21 @@
 #include <gtkmm/builder.h>
 #include "MvCameraControl.h"
 #include "camcols.h"
+#include <iostream>
+#include <thread>
+#include <future>
+#include <filesystem> 
 
 class MainWindow : public Gtk::Window
 {
 public:
     MainWindow(BaseObjectType *obj, Glib::RefPtr<Gtk::Builder> const &refBuilder);
     virtual ~MainWindow();
+    void* m_selectedCam;
+    std::string m_folderPath;
 
 protected:
+
     // Member widgets:
     Gtk::TreeView *m_camTreeView;
     Gtk::Button *m_discoverBtn;
@@ -31,7 +38,7 @@ protected:
     Gtk::FileChooserButton *m_pickerFcb;
     Gtk::SpinButton *m_captureDurationSb; 
     Gtk::SpinButton *m_captureRateSb;
-    
+
     // Signal handlers:
     void onDiscoverClicked();
     void onConnectClicked();
@@ -45,10 +52,9 @@ private:
     Glib::RefPtr<Gtk::Builder> m_builder;
     Glib::RefPtr<Gtk::ListStore> m_camListStore;
     MV_CC_DEVICE_INFO_LIST m_camList;
-    void* m_selectedCam;
     CamColumns m_camcols;
-    std::string m_folderPath;
     int m_captureDuration;
+    int m_captureRate;
     void populateDeviceSettings();
     void clearDeviceSettings();
     void onCaptureDurationChanged();
