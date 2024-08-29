@@ -1,57 +1,5 @@
 #include "mainwindow.h"
 
-void saveImageAsync(unsigned char* pData, MV_FRAME_OUT_INFO_EX* pFrameInfo, void* deviceHandle, std::string folderPath) {
-    MV_SAVE_IMG_TO_FILE_PARAM stSaveFileParam;
-    memset(&stSaveFileParam, 0, sizeof(MV_SAVE_IMG_TO_FILE_PARAM));
-
-    stSaveFileParam.enImageType = MV_Image_Bmp;
-    stSaveFileParam.enPixelType = pFrameInfo->enPixelType;
-    stSaveFileParam.nWidth      = pFrameInfo->nWidth;
-    stSaveFileParam.nHeight     = pFrameInfo->nHeight;
-    stSaveFileParam.nDataLen    = pFrameInfo->nFrameLen;
-    stSaveFileParam.pData       = pData;
-
-    sprintf(stSaveFileParam.pImagePath, "%sImage_w%d_h%d_fn%d.bmp", folderPath.c_str(), stSaveFileParam.nWidth, stSaveFileParam.nHeight, pFrameInfo->nFrameNum);
-
-    int nRet = MV_CC_SaveImageToFile(deviceHandle, &stSaveFileParam);
-    if (nRet != MV_OK) {
-        std::cout << "Failed to save image to file. Error code: " << nRet << std::endl;
-    }
-}
-
-void __stdcall GrabImageCallBack(unsigned char *pData, MV_FRAME_OUT_INFO_EX *pFrameInfo, void *pUser)
-{
-    // Cast pUser to MainWindow*
-    MainWindow* pThis = static_cast<MainWindow*>(pUser);
-
-    void* deviceHanlde = pThis->m_selectedCam;
-
-    // Ensure that the folder path ends with a slash
-    std::string folderPath = pThis->m_folderPath;
-    if (!folderPath.empty() && folderPath.back() != '/')
-    {
-        folderPath += '/';
-    }
-
-    // Calculate the elapsed time (in milliseconds) since the last capture using host timestamps
-    double elapsed = static_cast<double>(pFrameInfo->nHostTimeStamp - pThis->m_lastCaptureTimestamp);
-
-    if (pFrameInfo)
-    {
-        //std::cout << "GetOneFrame, Width: " << pFrameInfo->nWidth << ", Height: " << pFrameInfo->nHeight << ", Frame num: " << pFrameInfo->nFrameNum << std::endl;
-        std::cout << "GetOneFrame, nDevTimeStampHigh: " << pFrameInfo->nDevTimeStampHigh << ", nDevTimeStampLow: " << pFrameInfo->nDevTimeStampLow << ", nHostTimeStamp: " << pFrameInfo->nHostTimeStamp << ", elapsed: " << elapsed << std::endl;
-    }
-
-    if (elapsed >= pThis->m_captureInterval)
-    {
-        // Update the last capture timestamp
-        pThis->m_lastCaptureTimestamp = pFrameInfo->nHostTimeStamp;
-
-        // Save image in a separate thread
-        std::async(std::launch::async, saveImageAsync, pData, pFrameInfo, deviceHanlde, folderPath);
-    }
-}
-
 MainWindow::MainWindow(BaseObjectType *obj, Glib::RefPtr<Gtk::Builder> const &refBuilder)
     : Gtk::Window(obj), m_builder(refBuilder), m_captureDuration(5), m_captureInterval(0), m_lastCaptureTimestamp(0)
 {
@@ -122,6 +70,7 @@ MainWindow::MainWindow(BaseObjectType *obj, Glib::RefPtr<Gtk::Builder> const &re
     }
 
     m_builder->get_widget("capture_rate_sb", m_captureRateSb);
+    m_builder->get_widget("capture_pb", m_capturePb);
 }
 
 MainWindow::~MainWindow()
@@ -219,10 +168,29 @@ void MainWindow::onDiscoverClicked()
         }
         else
         {
-            std::cout << "Find No Devices!" << std::endl;
+            std::cout << "No device found." << std::endl;
             break;
         }
     } while (false);
+}
+
+void saveImageAsync(unsigned char* pData, MV_FRAME_OUT_INFO_EX* pFrameInfo, void* deviceHandle, std::string folderPath) {
+    MV_SAVE_IMG_TO_FILE_PARAM stSaveFileParam;
+    memset(&stSaveFileParam, 0, sizeof(MV_SAVE_IMG_TO_FILE_PARAM));
+
+    stSaveFileParam.enImageType = MV_Image_Bmp;
+    stSaveFileParam.enPixelType = pFrameInfo->enPixelType;
+    stSaveFileParam.nWidth      = pFrameInfo->nWidth;
+    stSaveFileParam.nHeight     = pFrameInfo->nHeight;
+    stSaveFileParam.nDataLen    = pFrameInfo->nFrameLen;
+    stSaveFileParam.pData       = pData;
+
+    sprintf(stSaveFileParam.pImagePath, "%sImage_w%d_h%d_fn%d.bmp", folderPath.c_str(), stSaveFileParam.nWidth, stSaveFileParam.nHeight, pFrameInfo->nFrameNum);
+
+    int nRet = MV_CC_SaveImageToFile(deviceHandle, &stSaveFileParam);
+    if (nRet != MV_OK) {
+        std::cout << "Failed to save image to file. Error code: " << nRet << std::endl;
+    }
 }
 
 void MainWindow::onConnectClicked()
@@ -284,7 +252,41 @@ void MainWindow::onConnectClicked()
     }
 
     // Register image callback
-    nRet = MV_CC_RegisterImageCallBackEx(m_selectedCam, GrabImageCallBack, this);
+    auto imageCaptureCallback = [](unsigned char *pData, MV_FRAME_OUT_INFO_EX *pFrameInfo, void *pUser) {
+        // Cast pUser to MainWindow*
+        MainWindow* pThis = static_cast<MainWindow*>(pUser);
+
+        void* deviceHandle = pThis->m_selectedCam;
+
+        // Ensure that the folder path ends with a slash
+        std::string folderPath = pThis->m_folderPath;
+        if (!folderPath.empty() && folderPath.back() != '/')
+        {
+            folderPath += '/';
+        }
+
+        // Calculate the elapsed time (in milliseconds) since the last capture using host timestamps
+        double elapsed = static_cast<double>(pFrameInfo->nHostTimeStamp - pThis->m_lastCaptureTimestamp);
+
+        if (pFrameInfo)
+        {
+            std::cout << "GetOneFrame, nDevTimeStampHigh: " << pFrameInfo->nDevTimeStampHigh 
+                      << ", nDevTimeStampLow: " << pFrameInfo->nDevTimeStampLow 
+                      << ", nHostTimeStamp: " << pFrameInfo->nHostTimeStamp 
+                      << ", elapsed: " << elapsed << std::endl;
+        }
+
+        if (elapsed >= pThis->m_captureInterval)
+        {
+            // Update the last capture timestamp
+            pThis->m_lastCaptureTimestamp = pFrameInfo->nHostTimeStamp;
+
+            // Save image in a separate thread
+            std::async(std::launch::async, saveImageAsync, pData, pFrameInfo, deviceHandle, folderPath);
+        }
+    };
+
+    nRet = MV_CC_RegisterImageCallBackEx(m_selectedCam, imageCaptureCallback, this);
     if (nRet != MV_OK)
     {
         std::cout << "MV_CC_RegisterImageCallBackEx fail. Error code: " << nRet << std::endl;
@@ -396,18 +398,6 @@ void MainWindow::clearDeviceSettings()
     }
 }
 
-void MainWindow::captureTimerFunc(std::future<void> stopSignalFuture, int duration) {
-    auto end = std::chrono::steady_clock::now() + std::chrono::milliseconds(duration);
-
-    if (stopSignalFuture.wait_until(end) == std::future_status::timeout) {
-        // Timer has completed without being stopped
-        MV_CC_StopGrabbing(m_selectedCam);  // Stop grabbing when time's up
-    } else {
-        // Timer was stopped before it completed
-        std::cout << "Timer stopped early." << std::endl;
-    }
-}
-
 void MainWindow::onStartClicked()
 {
     if (m_pickerFcb)
@@ -442,20 +432,38 @@ void MainWindow::onStartClicked()
         // Calculate the capture interval (in milliseconds) based on capture rate (FPS)
         m_captureInterval = 1000.0 / static_cast<double>(captureRate);
     }
-    
-    // If there's an existing timer thread, stop it first
-    if (timerThread.joinable()) {
-        exitSignal.set_value();  // Signal the timer thread to stop
-        timerThread.join();      // Wait for the thread to finish
-    }
 
-    // Reset the exit signal
-    exitSignal = std::promise<void>();
-    stopSignalFuture = exitSignal.get_future();
+    // Initialize progress bar
+    m_capturePb->set_fraction(0.0);  // Start at 0%
+    m_captureElapsedTime = 0;
 
-    // Start the timer function in a new thread
-    int duration = m_captureDuration * 60 * 1000; // 5 minutes in milliseconds
-    timerThread = std::thread(&MainWindow::captureTimerFunc, this, std::move(stopSignalFuture), duration);
+    // Start the timeout for the progress bar update using a lambda function
+    m_captureTimeoutConnection = Glib::signal_timeout().connect(
+        [this]() -> bool {
+            m_captureElapsedTime += 100; // Increase the elapsed time by 100 ms
+
+            // Calculate the capture duration in milliseconds
+            auto duration = m_captureDuration * 60 * 1000;
+            double fraction = static_cast<double>(m_captureElapsedTime) / duration;
+            m_capturePb->set_fraction(fraction);
+
+            if (m_captureElapsedTime >= duration)
+            {
+                // Time's up, stop the capturing and reset the progress bar
+                int nRet = MV_CC_StopGrabbing(m_selectedCam);
+                if (nRet != MV_OK)
+                {
+                    std::cout << "MV_CC_StopGrabbing fail. Error code: " << nRet << std::endl;
+                }
+                m_capturePb->set_fraction(1.0);
+
+                return false; // Return false to stop the timeout
+            }
+
+            return true; // Continue the timeout
+        },
+        100 // Update every 100 milliseconds
+    );
 
     // Start grab images
     int nRet = MV_CC_StartGrabbing(m_selectedCam);
@@ -467,9 +475,10 @@ void MainWindow::onStartClicked()
 
 void MainWindow::onStopClicked()
 {
-    if (timerThread.joinable()) {
-        exitSignal.set_value();  // Signal the timer thread to stop
-        timerThread.join();      // Wait for the thread to finish
+    // Stop the timeout
+    if (m_captureTimeoutConnection.connected())
+    {
+        m_captureTimeoutConnection.disconnect();
     }
 
     int nRet = MV_CC_StopGrabbing(m_selectedCam);

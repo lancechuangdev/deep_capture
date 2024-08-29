@@ -228,9 +228,10 @@
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkProgressBar">
+                  <object class="GtkProgressBar" id="capture_pb">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
+                    <property name="valign">center</property>
                     <property name="margin-end">10</property>
                   </object>
                   <packing>

@@ -19,14 +19,8 @@ class MainWindow : public Gtk::Window
 public:
     MainWindow(BaseObjectType *obj, Glib::RefPtr<Gtk::Builder> const &refBuilder);
     virtual ~MainWindow();
-    void* m_selectedCam;
-    std::string m_folderPath;
-    int64_t m_lastCaptureTimestamp;
-    int m_captureDuration;
-    double m_captureInterval;
     
 protected:
-
     // Member widgets:
     Gtk::TreeView *m_camTreeView;
     Gtk::Button *m_discoverBtn;
@@ -42,6 +36,7 @@ protected:
     Gtk::FileChooserButton *m_pickerFcb;
     Gtk::SpinButton *m_captureDurationSb; 
     Gtk::SpinButton *m_captureRateSb;
+    Gtk::ProgressBar* m_capturePb;
 
     // Signal handlers:
     void onDiscoverClicked();
@@ -57,14 +52,16 @@ private:
     Glib::RefPtr<Gtk::ListStore> m_camListStore;
     MV_CC_DEVICE_INFO_LIST m_camList;
     CamColumns m_camcols;
+    void* m_selectedCam;
+    std::string m_folderPath;
+    int64_t m_lastCaptureTimestamp;
+    int m_captureDuration;
+    double m_captureInterval;
+    sigc::connection m_captureTimeoutConnection;
+    int m_captureElapsedTime; // in milliseconds
     void populateDeviceSettings();
     void clearDeviceSettings();
     void onCaptureDurationChanged();
-    
-    std::promise<void> exitSignal; // to signal the timer thread to stop
-    std::future<void> stopSignalFuture; // to wait for the timer to complete.
-    std::thread timerThread;
-    void captureTimerFunc(std::future<void> stopSignalFuture, int duration);
 };
 
 #endif // DEEP_SCAN_MAINWINDOW_H
