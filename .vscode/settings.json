@@ -59,6 +59,9 @@
         "cinttypes": "cpp",
         "typeinfo": "cpp",
         "valarray": "cpp",
-        "filesystem": "cpp"
+        "filesystem": "cpp",
+        "codecvt": "cpp",
+        "future": "cpp",
+        "iomanip": "cpp"
     }
 }

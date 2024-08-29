@@ -9,6 +9,7 @@
 #include "MvCameraControl.h"
 #include "camcols.h"
 #include <iostream>
+#include <chrono>
 #include <thread>
 #include <future>
 #include <filesystem> 
@@ -20,7 +21,10 @@ public:
     virtual ~MainWindow();
     void* m_selectedCam;
     std::string m_folderPath;
-
+    int64_t m_lastCaptureTimestamp;
+    int m_captureDuration;
+    double m_captureInterval;
+    
 protected:
 
     // Member widgets:
@@ -53,11 +57,14 @@ private:
     Glib::RefPtr<Gtk::ListStore> m_camListStore;
     MV_CC_DEVICE_INFO_LIST m_camList;
     CamColumns m_camcols;
-    int m_captureDuration;
-    int m_captureRate;
     void populateDeviceSettings();
     void clearDeviceSettings();
     void onCaptureDurationChanged();
+    
+    std::promise<void> exitSignal; // to signal the timer thread to stop
+    std::future<void> stopSignalFuture; // to wait for the timer to complete.
+    std::thread timerThread;
+    void captureTimerFunc(std::future<void> stopSignalFuture, int duration);
 };
 
 #endif // DEEP_SCAN_MAINWINDOW_H

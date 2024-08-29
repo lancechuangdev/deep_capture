@@ -14,18 +14,13 @@ void saveImageAsync(unsigned char* pData, MV_FRAME_OUT_INFO_EX* pFrameInfo, void
     sprintf(stSaveFileParam.pImagePath, "%sImage_w%d_h%d_fn%d.bmp", folderPath.c_str(), stSaveFileParam.nWidth, stSaveFileParam.nHeight, pFrameInfo->nFrameNum);
 
     int nRet = MV_CC_SaveImageToFile(deviceHandle, &stSaveFileParam);
-    if (MV_OK != nRet) {
+    if (nRet != MV_OK) {
         std::cout << "Failed to save image to file. Error code: " << nRet << std::endl;
     }
 }
 
 void __stdcall GrabImageCallBack(unsigned char *pData, MV_FRAME_OUT_INFO_EX *pFrameInfo, void *pUser)
 {
-    if (pFrameInfo)
-    {
-        std::cout << "GetOneFrame, Width: " << pFrameInfo->nWidth << ", Height: " << pFrameInfo->nHeight << ", Frame num: " << pFrameInfo->nFrameNum << std::endl;
-    }
-
     // Cast pUser to MainWindow*
     MainWindow* pThis = static_cast<MainWindow*>(pUser);
 
@@ -38,15 +33,27 @@ void __stdcall GrabImageCallBack(unsigned char *pData, MV_FRAME_OUT_INFO_EX *pFr
         folderPath += '/';
     }
 
-    if (pFrameInfo->nFrameNum < 10)
+    // Calculate the elapsed time (in milliseconds) since the last capture using host timestamps
+    double elapsed = static_cast<double>(pFrameInfo->nHostTimeStamp - pThis->m_lastCaptureTimestamp);
+
+    if (pFrameInfo)
     {
+        //std::cout << "GetOneFrame, Width: " << pFrameInfo->nWidth << ", Height: " << pFrameInfo->nHeight << ", Frame num: " << pFrameInfo->nFrameNum << std::endl;
+        std::cout << "GetOneFrame, nDevTimeStampHigh: " << pFrameInfo->nDevTimeStampHigh << ", nDevTimeStampLow: " << pFrameInfo->nDevTimeStampLow << ", nHostTimeStamp: " << pFrameInfo->nHostTimeStamp << ", elapsed: " << elapsed << std::endl;
+    }
+
+    if (elapsed >= pThis->m_captureInterval)
+    {
+        // Update the last capture timestamp
+        pThis->m_lastCaptureTimestamp = pFrameInfo->nHostTimeStamp;
+
         // Save image in a separate thread
         std::async(std::launch::async, saveImageAsync, pData, pFrameInfo, deviceHanlde, folderPath);
     }
 }
 
 MainWindow::MainWindow(BaseObjectType *obj, Glib::RefPtr<Gtk::Builder> const &refBuilder)
-    : Gtk::Window(obj), m_builder(refBuilder)
+    : Gtk::Window(obj), m_builder(refBuilder), m_captureDuration(5), m_captureInterval(0), m_lastCaptureTimestamp(0)
 {
     // Get the button by ID and connect the signal handler.
     m_builder->get_widget("discover_btn", m_discoverBtn);
@@ -183,7 +190,7 @@ void MainWindow::onDiscoverClicked()
 
         // enum device
         int nRet = MV_CC_EnumDevices(MV_GIGE_DEVICE | MV_USB_DEVICE, &m_camList);
-        if (MV_OK != nRet)
+        if (nRet != MV_OK)
         {
             std::cout << "MV_CC_EnumDevices fail! Error code: " << nRet << std::endl;
             break;
@@ -270,7 +277,7 @@ void MainWindow::onConnectClicked()
 
     // Turn trigger mode off
     nRet = MV_CC_SetEnumValue(m_selectedCam, "TriggerMode", 0);
-    if (MV_OK != nRet)
+    if (nRet != MV_OK)
     {
         std::cout << "MV_CC_SetTriggerMode fail. Error code: " << nRet << std::endl;
         return;
@@ -278,7 +285,7 @@ void MainWindow::onConnectClicked()
 
     // Register image callback
     nRet = MV_CC_RegisterImageCallBackEx(m_selectedCam, GrabImageCallBack, this);
-    if (MV_OK != nRet)
+    if (nRet != MV_OK)
     {
         std::cout << "MV_CC_RegisterImageCallBackEx fail. Error code: " << nRet << std::endl;
         return;
@@ -389,6 +396,18 @@ void MainWindow::clearDeviceSettings()
     }
 }
 
+void MainWindow::captureTimerFunc(std::future<void> stopSignalFuture, int duration) {
+    auto end = std::chrono::steady_clock::now() + std::chrono::milliseconds(duration);
+
+    if (stopSignalFuture.wait_until(end) == std::future_status::timeout) {
+        // Timer has completed without being stopped
+        MV_CC_StopGrabbing(m_selectedCam);  // Stop grabbing when time's up
+    } else {
+        // Timer was stopped before it completed
+        std::cout << "Timer stopped early." << std::endl;
+    }
+}
+
 void MainWindow::onStartClicked()
 {
     if (m_pickerFcb)
@@ -419,12 +438,28 @@ void MainWindow::onStartClicked()
     }
     if (m_captureRateSb)
     {
-        m_captureRate = m_captureRateSb->get_value();
+        int captureRate = m_captureRateSb->get_value();
+        // Calculate the capture interval (in milliseconds) based on capture rate (FPS)
+        m_captureInterval = 1000.0 / static_cast<double>(captureRate);
     }
     
+    // If there's an existing timer thread, stop it first
+    if (timerThread.joinable()) {
+        exitSignal.set_value();  // Signal the timer thread to stop
+        timerThread.join();      // Wait for the thread to finish
+    }
+
+    // Reset the exit signal
+    exitSignal = std::promise<void>();
+    stopSignalFuture = exitSignal.get_future();
+
+    // Start the timer function in a new thread
+    int duration = m_captureDuration * 60 * 1000; // 5 minutes in milliseconds
+    timerThread = std::thread(&MainWindow::captureTimerFunc, this, std::move(stopSignalFuture), duration);
+
     // Start grab images
     int nRet = MV_CC_StartGrabbing(m_selectedCam);
-    if (MV_OK != nRet)
+    if (nRet != MV_OK)
     {
         std::cout << "MV_CC_StartGrabbing fail. Error code: " << nRet << std::endl;
     }
@@ -432,8 +467,13 @@ void MainWindow::onStartClicked()
 
 void MainWindow::onStopClicked()
 {
+    if (timerThread.joinable()) {
+        exitSignal.set_value();  // Signal the timer thread to stop
+        timerThread.join();      // Wait for the thread to finish
+    }
+
     int nRet = MV_CC_StopGrabbing(m_selectedCam);
-    if (MV_OK != nRet)
+    if (nRet != MV_OK)
     {
         std::cout << "MV_CC_StopGrabbing fail. Error code: " << nRet << std::endl;
     }
@@ -442,14 +482,14 @@ void MainWindow::onStopClicked()
 void MainWindow::onDisconnectClicked()
 {
     int nRet = MV_CC_CloseDevice(m_selectedCam);
-    if (MV_OK != nRet)
+    if (nRet != MV_OK)
     {
         std::cout << "MV_CC_CloseDevice fail. Error code: " << nRet << std::endl;
     }
 
     // destroy handle
     nRet = MV_CC_DestroyHandle(m_selectedCam);
-    if (MV_OK != nRet)
+    if (nRet != MV_OK)
     {
         std::cout << "MV_CC_DestroyHandle fail. Error code: " << nRet << std::endl;
     }
