@@ -4,7 +4,7 @@ MainWindow::MainWindow(BaseObjectType *obj, Glib::RefPtr<Gtk::Builder> const &re
     : Gtk::Window(obj), m_builder(refBuilder), m_captureDuration(5), m_captureInterval(0), m_lastCaptureTimestamp(0)
 {
     // Set the window title
-    Gtk::Window *root; 
+    Gtk::Window *root;
     m_builder->get_widget("root", root);
     root->set_title("Deep Scan");
 
@@ -14,6 +14,10 @@ MainWindow::MainWindow(BaseObjectType *obj, Glib::RefPtr<Gtk::Builder> const &re
     m_builder->get_widget("start_btn", m_startBtn);
     m_builder->get_widget("stop_btn", m_stopBtn);
     m_builder->get_widget("disconnect_btn", m_disconnectBtn);
+
+    // Disable the start button initially
+    m_connectBtn->set_sensitive(false);
+    m_startBtn->set_sensitive(false);
 
     if (m_discoverBtn)
     {
@@ -62,6 +66,18 @@ MainWindow::MainWindow(BaseObjectType *obj, Glib::RefPtr<Gtk::Builder> const &re
 
     // Image Acquiring
     m_builder->get_widget("picker_fcb", m_pickerFcb);
+    if (m_pickerFcb)
+    {
+        // Connect to the file-set signal
+        m_pickerFcb->signal_selection_changed().connect([this]()
+        {
+            // Get the selected folder path
+            auto folder = m_pickerFcb->get_filename();
+
+            // Enable the start button if a folder is selected
+            m_startBtn->set_sensitive(!folder.empty()); 
+        });
+    }
     m_builder->get_widget("capture_duration_sb", m_captureDurationSb);
     m_builder->get_widget("capture_rate_sb", m_captureRateSb);
     m_builder->get_widget("capture_pb", m_capturePb);
@@ -113,6 +129,7 @@ void MainWindow::onTreeviewSelectionChanged()
     if (nIndex < 0)
     {
         std::cout << "No camera was selected." << std::endl;
+        m_connectBtn->set_sensitive(false);
     }
     else
     {
@@ -121,6 +138,10 @@ void MainWindow::onTreeviewSelectionChanged()
         if (nRet != MV_OK)
         {
             std::cout << "MV_CC_CreateHandle fail! Error code: " << nRet << std::endl;
+        }
+        else
+        {
+            m_connectBtn->set_sensitive(true);
         }
     }
 }
