@@ -57,18 +57,7 @@ MainWindow::MainWindow(BaseObjectType *obj, Glib::RefPtr<Gtk::Builder> const &re
 
     // Image Acquiring
     m_builder->get_widget("picker_fcb", m_pickerFcb);
-    if (m_pickerFcb)
-    {
-        // Connect to the file-set signal
-        m_pickerFcb->signal_file_set().connect(sigc::mem_fun(*this, &MainWindow::onFolderSelected));
-    }
-
     m_builder->get_widget("capture_duration_sb", m_captureDurationSb);
-    if (m_captureDurationSb) 
-    {
-        m_captureDurationSb->signal_value_changed().connect(sigc::mem_fun(*this, &MainWindow::onCaptureDurationChanged));
-    }
-
     m_builder->get_widget("capture_rate_sb", m_captureRateSb);
     m_builder->get_widget("capture_pb", m_capturePb);
 }
@@ -77,10 +66,13 @@ MainWindow::~MainWindow()
 {
 }
 
-std::string getIpV4AddressString(uint32_t ip) {
+std::string getIpV4AddressString(uint32_t ip)
+{
     std::ostringstream ipStream;
-    for (int i = 0; i < 4; ++i) {
-        if (i > 0) {
+    for (int i = 0; i < 4; ++i)
+    {
+        if (i > 0)
+        {
             ipStream << ".";
         }
         ipStream << ((ip >> (24 - 8 * i)) & 0xFF);
@@ -93,14 +85,14 @@ int getSelectedCamIndex(Gtk::TreeView *camTreeView, Glib::RefPtr<Gtk::ListStore>
     int index = 0;
     Glib::RefPtr<Gtk::TreeSelection> selection = camTreeView->get_selection();
     Gtk::TreeModel::iterator iter = selection->get_selected();
-    if(iter)
+    if (iter)
     {
         Gtk::TreeModel::Children::iterator it;
         Gtk::TreeModel::Children children = camsListStore->children();
 
-        for(it = children.begin(); it != children.end(); ++it)
+        for (it = children.begin(); it != children.end(); ++it)
         {
-            if(it == iter)
+            if (it == iter)
             {
                 return index;
             }
@@ -110,15 +102,16 @@ int getSelectedCamIndex(Gtk::TreeView *camTreeView, Glib::RefPtr<Gtk::ListStore>
     return -1;
 }
 
-void MainWindow::onTreeviewSelectionChanged() {
+void MainWindow::onTreeviewSelectionChanged()
+{
     int nIndex = getSelectedCamIndex(m_camTreeView, m_camListStore);
-    if (nIndex < 0) 
+    if (nIndex < 0)
     {
         std::cout << "No camera was selected." << std::endl;
     }
     else
     {
-        MV_CC_DEVICE_INFO* pSelectedCam = m_camList.pDeviceInfo[nIndex];
+        MV_CC_DEVICE_INFO *pSelectedCam = m_camList.pDeviceInfo[nIndex];
         int nRet = MV_CC_CreateHandle(&m_selectedCam, pSelectedCam);
         if (nRet != MV_OK)
         {
@@ -126,7 +119,6 @@ void MainWindow::onTreeviewSelectionChanged() {
         }
     }
 }
-
 
 void MainWindow::onDiscoverClicked()
 {
@@ -160,8 +152,8 @@ void MainWindow::onDiscoverClicked()
 
                 if (pDeviceInfo->nTLayerType == MV_GIGE_DEVICE)
                 {
-                    row[m_camcols.col_model] = Glib::ustring(reinterpret_cast<const char*>(pDeviceInfo->SpecialInfo.stGigEInfo.chModelName));
-                    row[m_camcols.col_friendly_name] = Glib::ustring(reinterpret_cast<const char*>(pDeviceInfo->SpecialInfo.stGigEInfo.chUserDefinedName));
+                    row[m_camcols.col_model] = Glib::ustring(reinterpret_cast<const char *>(pDeviceInfo->SpecialInfo.stGigEInfo.chModelName));
+                    row[m_camcols.col_friendly_name] = Glib::ustring(reinterpret_cast<const char *>(pDeviceInfo->SpecialInfo.stGigEInfo.chUserDefinedName));
                     row[m_camcols.col_ip] = getIpV4AddressString(pDeviceInfo->SpecialInfo.stGigEInfo.nCurrentIp);
                 }
             }
@@ -174,21 +166,23 @@ void MainWindow::onDiscoverClicked()
     } while (false);
 }
 
-void saveImageAsync(unsigned char* pData, MV_FRAME_OUT_INFO_EX* pFrameInfo, void* deviceHandle, std::string folderPath) {
+void saveImageAsync(unsigned char *pData, MV_FRAME_OUT_INFO_EX *pFrameInfo, void *deviceHandle, std::string folderPath)
+{
     MV_SAVE_IMG_TO_FILE_PARAM stSaveFileParam;
     memset(&stSaveFileParam, 0, sizeof(MV_SAVE_IMG_TO_FILE_PARAM));
 
     stSaveFileParam.enImageType = MV_Image_Bmp;
     stSaveFileParam.enPixelType = pFrameInfo->enPixelType;
-    stSaveFileParam.nWidth      = pFrameInfo->nWidth;
-    stSaveFileParam.nHeight     = pFrameInfo->nHeight;
-    stSaveFileParam.nDataLen    = pFrameInfo->nFrameLen;
-    stSaveFileParam.pData       = pData;
+    stSaveFileParam.nWidth = pFrameInfo->nWidth;
+    stSaveFileParam.nHeight = pFrameInfo->nHeight;
+    stSaveFileParam.nDataLen = pFrameInfo->nFrameLen;
+    stSaveFileParam.pData = pData;
 
     sprintf(stSaveFileParam.pImagePath, "%sImage_w%d_h%d_fn%d.bmp", folderPath.c_str(), stSaveFileParam.nWidth, stSaveFileParam.nHeight, pFrameInfo->nFrameNum);
 
     int nRet = MV_CC_SaveImageToFile(deviceHandle, &stSaveFileParam);
-    if (nRet != MV_OK) {
+    if (nRet != MV_OK)
+    {
         std::cout << "Failed to save image to file. Error code: " << nRet << std::endl;
     }
 }
@@ -200,14 +194,14 @@ void MainWindow::onConnectClicked()
     // Create device handler if needed
     if (!m_selectedCam)
     {
-        if (nIndex < 0) 
+        if (nIndex < 0)
         {
             std::cout << "No camera was selected." << std::endl;
             return;
         }
         else
         {
-            MV_CC_DEVICE_INFO* pSelectedCam = m_camList.pDeviceInfo[nIndex];
+            MV_CC_DEVICE_INFO *pSelectedCam = m_camList.pDeviceInfo[nIndex];
             int nRet = MV_CC_CreateHandle(&m_selectedCam, pSelectedCam);
             if (nRet != MV_OK)
             {
@@ -252,14 +246,15 @@ void MainWindow::onConnectClicked()
     }
 
     // Register image callback
-    auto imageCaptureCallback = [](unsigned char *pData, MV_FRAME_OUT_INFO_EX *pFrameInfo, void *pUser) {
+    auto imageCaptureCallback = [](unsigned char *pData, MV_FRAME_OUT_INFO_EX *pFrameInfo, void *pUser)
+    {
         // Cast pUser to MainWindow*
-        MainWindow* pThis = static_cast<MainWindow*>(pUser);
+        MainWindow *pThis = static_cast<MainWindow *>(pUser);
 
-        void* deviceHandle = pThis->m_selectedCam;
+        void *deviceHandle = pThis->m_selectedCam;
 
         // Ensure that the folder path ends with a slash
-        std::string folderPath = pThis->m_folderPath;
+        std::string folderPath = pThis->m_imageFolderPath;
         if (!folderPath.empty() && folderPath.back() != '/')
         {
             folderPath += '/';
@@ -270,9 +265,9 @@ void MainWindow::onConnectClicked()
 
         if (pFrameInfo)
         {
-            std::cout << "GetOneFrame, nDevTimeStampHigh: " << pFrameInfo->nDevTimeStampHigh 
-                      << ", nDevTimeStampLow: " << pFrameInfo->nDevTimeStampLow 
-                      << ", nHostTimeStamp: " << pFrameInfo->nHostTimeStamp 
+            std::cout << "GetOneFrame, nDevTimeStampHigh: " << pFrameInfo->nDevTimeStampHigh
+                      << ", nDevTimeStampLow: " << pFrameInfo->nDevTimeStampLow
+                      << ", nHostTimeStamp: " << pFrameInfo->nHostTimeStamp
                       << ", elapsed: " << elapsed << std::endl;
         }
 
@@ -402,7 +397,7 @@ void MainWindow::onStartClicked()
 {
     if (m_pickerFcb)
     {
-        m_folderPath = m_pickerFcb->get_filename();
+        m_imageFolderPath = m_pickerFcb->get_filename();
 
         // Get current time and format it as YYYYMMDD_HHMMSS
         char timestamp[20];
@@ -411,14 +406,18 @@ void MainWindow::onStartClicked()
 
         // Append timestamp to the folder path
         std::string timestampStr(timestamp);
-        m_folderPath += "/" + timestampStr;
+        m_imageFolderPath += "/" + timestampStr;
 
         // Create the subfolder if it doesn't exist
-        try {
-            if (!std::filesystem::exists(m_folderPath)) {
-                std::filesystem::create_directory(m_folderPath);
+        try
+        {
+            if (!std::filesystem::exists(m_imageFolderPath))
+            {
+                std::filesystem::create_directory(m_imageFolderPath);
             }
-        } catch (const std::filesystem::filesystem_error& e) {
+        }
+        catch (const std::filesystem::filesystem_error &e)
+        {
             std::cerr << "Error creating directory: " << e.what() << std::endl;
         }
     }
@@ -434,12 +433,13 @@ void MainWindow::onStartClicked()
     }
 
     // Initialize progress bar
-    m_capturePb->set_fraction(0.0);  // Start at 0%
+    m_capturePb->set_fraction(0.0); // Start at 0%
     m_captureElapsedTime = 0;
 
     // Start the timeout for the progress bar update using a lambda function
     m_captureTimeoutConnection = Glib::signal_timeout().connect(
-        [this]() -> bool {
+        [this]() -> bool
+        {
             m_captureElapsedTime += 100; // Increase the elapsed time by 100 ms
 
             // Calculate the capture duration in milliseconds
@@ -506,12 +506,4 @@ void MainWindow::onDisconnectClicked()
     m_selectedCam = nullptr;
 
     clearDeviceSettings();
-}
-
-void MainWindow::onFolderSelected() {
-    m_folderPath = m_pickerFcb->get_filename();
-}
-
-void MainWindow::onCaptureDurationChanged() {
-    m_captureDuration = m_captureDurationSb->get_value();
 }
