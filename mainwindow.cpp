@@ -3,6 +3,11 @@
 MainWindow::MainWindow(BaseObjectType *obj, Glib::RefPtr<Gtk::Builder> const &refBuilder)
     : Gtk::Window(obj), m_builder(refBuilder), m_captureDuration(5), m_captureInterval(0), m_lastCaptureTimestamp(0)
 {
+    // Set the window title
+    Gtk::Window *root; 
+    m_builder->get_widget("root", root);
+    root->set_title("Deep Scan");
+
     // Get the button by ID and connect the signal handler.
     m_builder->get_widget("discover_btn", m_discoverBtn);
     m_builder->get_widget("connect_btn", m_connectBtn);
