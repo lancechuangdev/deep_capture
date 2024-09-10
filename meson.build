@@ -1,4 +1,4 @@
-project('deep_scan', 'cpp')
+project('deep_capture', 'cpp')
 
 gtkmm_dep = dependency('gtkmm-3.0', version: '>= 3.24.0')
 
@@ -9,8 +9,10 @@ mvcam_runenv = '/opt/MVS/lib'
 inc_dir = join_paths(mvcam_runenv, '../include')
 lib_dir = join_paths(mvcam_runenv, '64')
 
-executable('ds', 
-    'main.cpp', 'mainwindow.cpp', 
+executable('dc', 
+    ['main.cpp', 'mainwindow.cpp'],
+    install: true,
+    install_dir: join_paths(get_option('prefix'), 'bin', 'deep-capture'),
     dependencies: gtkmm_dep,
     include_directories: inc_dir,
     link_args: [
@@ -18,4 +20,10 @@ executable('ds',
         '-L' + lib_dir,
         '-lMvCameraControl'
     ]
+)
+
+# Install data files
+install_data(
+    'ui.glade', 
+    install_dir: join_paths(get_option('prefix'), 'share', 'deep-capture')
 )

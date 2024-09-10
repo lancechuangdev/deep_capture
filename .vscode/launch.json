@@ -8,7 +8,7 @@
             "name": "Debug gtkmm App",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/builddir/ds",
+            "program": "${workspaceFolder}/builddir/dc",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/builddir",

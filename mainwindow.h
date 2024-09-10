@@ -1,5 +1,5 @@
-#ifndef DEEP_SCAN_MAINWINDOW_H
-#define DEEP_SCAN_MAINWINDOW_H
+#ifndef DEEP_CAPTURE_MAINWINDOW_H
+#define DEEP_CAPTURE_MAINWINDOW_H
 
 #include <gtkmm/button.h>
 #include <gtkmm/treeview.h>
@@ -62,4 +62,4 @@ private:
     void clearDeviceSettings();
 };
 
-#endif // DEEP_SCAN_MAINWINDOW_H
+#endif // DEEP_CAPTURE_MAINWINDOW_H

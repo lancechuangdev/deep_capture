@@ -6,7 +6,7 @@ MainWindow::MainWindow(BaseObjectType *obj, Glib::RefPtr<Gtk::Builder> const &re
     // Set the window title
     Gtk::Window *root;
     m_builder->get_widget("root", root);
-    root->set_title("Deep Scan");
+    root->set_title("Deep Capture");
 
     // Get the button by ID and connect the signal handler.
     m_builder->get_widget("discover_btn", m_discoverBtn);
