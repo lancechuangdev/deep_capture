@@ -14,7 +14,7 @@ int main(int argc, char **argv)
     {
         // Define the paths for development and installation
         const std::filesystem::path dev_path = "../ui.glade";
-        const std::filesystem::path install_path = "/usr/local/share/deep-scan/ui.glade";
+        const std::filesystem::path install_path = "/usr/local/share/deep-capture/ui.glade";
 
         // Check if the file exists in the development path first, otherwise use the install path
         if (std::filesystem::exists(dev_path)) {
